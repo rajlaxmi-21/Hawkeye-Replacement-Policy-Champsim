@@ -1,0 +1,49 @@
+mkdir -p results3
+
+CONFIG_DIR=~/Desktop/hawkeye-champsim/ChampSim  
+
+for cfg in llc4way_lru llc4way_hawkeye llc8way_lru llc8way_hawkeye llc16way_lru llc16way_hawkeye; do
+    echo "=== Building $cfg ==="
+    ./config.sh "${CONFIG_DIR}/${cfg}.json"
+    make -j$(sysctl -n hw.ncpu)
+
+    echo "=== Running $cfg ==="
+    bin/champsim --warmup_instructions 20000000 --simulation_instructions 50000000 \
+        traces/456.hmmer-191B.champsimtrace.xz \
+        > results3/${cfg}.log 2>&1
+done
+
+------
+
+CONFIG_DIR=~/Desktop/hawkeye-champsim/ChampSim  
+
+for cfg in llc4way_hawkeye llc8way_hawkeye llc16way_hawkeye; do
+    echo "=== Building $cfg ==="
+    ./config.sh "${CONFIG_DIR}/${cfg}.json"
+    make -j$(sysctl -n hw.ncpu)
+
+    echo "=== Running $cfg ==="
+    bin/champsim --warmup_instructions 20000000 --simulation_instructions 50000000 \
+        traces/456.hmmer-191B.champsimtrace.xz \
+        > results3/${cfg}.log 2>&1
+done
+------
+
+
+mkdir -p results4
+
+CONFIG_DIR=~/Desktop/hawkeye-champsim/ChampSim  
+TRACES=(456.hmmer-191B 429.mcf-22B 473.astar-42B)
+
+for policy in lru hawkeye; do
+    echo "=== Building llc16way_${policy} ==="
+    ./config.sh "${CONFIG_DIR}/llc16way_${policy}.json"
+    make -j$(sysctl -n hw.ncpu)
+
+    for trace in "${TRACES[@]}"; do
+        echo "=== Running ${trace} with ${policy} ==="
+        bin/champsim --warmup_instructions 20000000 --simulation_instructions 50000000 \
+            traces/${trace}.champsimtrace.xz \
+            > results4/plot2_${trace}_${policy}.log 2>&1
+    done
+done
